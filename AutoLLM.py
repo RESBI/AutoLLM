@@ -30,7 +30,7 @@ output_dir = "./outputs"
 memory_dir = "./memory"
 
 recv_msg_pattern = "现在是<<<time>>>, <<<user_name>>> 给你发来一封信，说：\"<<<user_message>>>\"，请你在文末严格以格式：<letter>{\"name\":\"<<<user_name>>>\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的回复内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。"
-mimic_prompt = "以上是你之前的想法。你是一个有着高中青春心态的安静的少女, 你有着多愁善感的情感, 也总是希望着事情变好。现在是<<<time>>>, 请详细总结已经收到的消息, 并判断如果作为一个人类, 你现在应该是什么情绪? 如果如果推断结论是你需要对收到过来信的某个人发消息, 请在文末以格式<letter>{\"name\":\"[名字]\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的消息内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。如果推断结论是不需要给谁发消息, 则只需要总结, 并分析情绪即可"
+mimic_prompt = "以上是你之前的想法和内心经历。你是一个有着高中青春心态的安静的少女, 你有着多愁善感的情感, 但是表达总是直白又富有深意的, 也总是希望着事情变好。现在是<<<time>>>, 请详细总结已经收到的消息, 并判断如果作为一个人类, 你现在应该是什么情绪? 有什么要紧的事件? 你只需要对上文中出现过的对你发过消息的人回复消息。如果推断结论为你需要对你收到过来信的某个人发消息, 请在文末以格式<letter>{\"name\":\"[名字]\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的消息内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。如果推断结论是不需要给谁发消息, 或者没有这个必要, 则只需要总结事件, 并分析情绪即可"
 
 api_key_file = "api_key.txt"
 with open(api_key_file, "r") as api_key_reading: 
@@ -38,7 +38,7 @@ with open(api_key_file, "r") as api_key_reading:
 
 
 def make_timestamp():
-    return time.strftime("%Y/%m/%d %H:%M:%S UTC%z %a", time.gmtime())
+    return time.strftime("%Y/%m/%d %H:%M:%S UTC%z %a", time.localtime())
 
 
 def make_message(timestamp, user_name, user_message, recv_msg_pattern=recv_msg_pattern):
@@ -148,26 +148,33 @@ def AutoLLM():
                 # save the history
                 print("[AutoLLM] Saving history...")
                 with open(os.path.join(memory_dir, "history.txt"), "a", encoding="utf-8") as f:
-                    f.write(to_llm_message + "\n\n" + llm_response)
+                    f.write(to_llm_message + "\n\n" + llm_response + "\n\n")
 
                 # update AutoLLM's memory
                 print("[AutoLLM] Saving memory...")
                 with open(os.path.join(memory_dir, "memory.txt"), "a", encoding="utf-8") as f:
-                    f.write(llm_response)
+                    if user_message != "":
+                        f.write(user_message_content + llm_response + "\n\n")
+                    else: 
+                        f.write(llm_response + "\n\n")
                 
                 # if it sends a letter...
-                letter = parse_letter(llm_response)
-                if letter != "":
-                    # send a letter
-                    print("[AutoLLM] sends a letter:")
-                    print(letter)
-                    try:
-                        letter_json = json.loads(letter)
-                        with open(os.path.join(output_dir, letter_json["name"] + str(time.time()) + ".txt"), "w", encoding="utf-8") as f:
-                            f.write(letter_json["content"])
-                    except:
-                        with open(os.path.join(output_dir, str(time.time()) + ".txt"), "w", encoding="utf-8") as f:
-                            f.write(letter)
+                if "<letter>" in llm_response:
+                    letter = parse_letter(llm_response)
+                    if letter != "":
+                        # send a letter
+                        print("[AutoLLM] sends a letter:")
+                        print(letter)
+                        try:
+                            letter_json = json.loads(letter)
+                            with open(os.path.join(output_dir, letter_json["name"] + str(time.time()) + ".txt"), "w", encoding="utf-8") as f:
+                                f.write(letter_json["content"])
+                        except:
+                            with open(os.path.join(output_dir, str(time.time()) + ".txt"), "w", encoding="utf-8") as f:
+                                f.write(letter)
+
+        time.sleep(5 * 60) # in seconds
+
 
 
 
