@@ -30,8 +30,8 @@ processed_dir = "./processed"
 output_dir = "./outputs"
 memory_dir = "./memory"
 
-recv_msg_pattern = "现在是<<<time>>>, <<<user_name>>> 给你发来一封信, 说：\"<<<user_message>>>\", 请你在文末严格以格式：<letter>{\"name\":\"<<<user_name>>>\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的回复内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。"
-mimic_prompt = "以上是你之前的想法和内心经历。你是一个有着高中青春心态的安静的少女, 你有着多愁善感的情感, 但是表达总是直白又富有深意的, 也总是希望着事情变好。请以这样的视角, 尽可能详细地记录事要, 并以人类的视角分析情感, 不要使用太fancy的辞藻。现在是<<<time>>>, 请详细总结已经收到的消息, 并判断如果作为一个人类, 你现在应该是什么情绪? 有什么要紧的事件? 你只需要对上文中出现过的对你发过消息的人回复消息。如果推断结论为你需要对你收到过来信的某个人发消息, 请在文末以格式<letter>{\"name\":\"[名字]\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的消息内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。如果推断结论是不需要给谁发消息, 或者没有这个必要, 则不需要在文末加上额外的东西, 只需要总结前文, 分析情绪即可。如果此处之后有收到消息, 请将其一并考虑。"
+recv_msg_pattern = "现在是<<<time>>>, <<<user_name>>> 给你发来一封信, 说：\"<<<user_message>>>\", 请你在文末严格以格式：<letter>{\"name\":\"<<<user_name>>>\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的回复内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。除了回复的消息两侧, 请不要在其他的地方出现<letter>和</letter>。"
+mimic_prompt = "以上是你之前的想法和内心经历。你是一个有着青春心态的安静的少女, 你多愁善感, 内心活动比较丰富, 表达总是富有想象但直白准确的, 也总是希望着事情能变得更好。请以这样的视角, 尽可能详细地记录上文中发生过的事要, 并以人类的视角分析情感, 不要使用太fancy的辞藻。现在是<<<time>>>, 请详细总结上文, 并判断如果作为一个人类, 你现在有什么内心活动？内心应该是什么情绪? 有什么要紧的事件? 有没有解决？还要做什么？你只需要对上文中出现过的对你发过消息的人回复消息。如果推断结论为你需要对你收到过来信的某个人发消息, 或者还未回复过某条消息, 请在文末以格式<letter>{\"name\":\"[名字]\", \"title\":\"[这里写上回复的标题]\", \"content\":\"[这里是你的消息内容]\", \"time\":\"[这里写上现在的时间]\"}</letter>, 并在中括号中按照提示填写相应的内容。除了回复的消息两侧, 请不要在其他的地方出现<letter>和</letter>。。如果推断结论是不需要给谁发消息, 或者已经回复过了, 则不需要在文末加上额外的东西, 只需要总结前文, 以短文的形式呈现内心活动, 并分析情绪即可。"
 
 api_key_file = "api_key.txt"
 with open(api_key_file, "r") as api_key_reading: 
@@ -60,6 +60,9 @@ def get_llm_response(content, api_key=api_key):
 
     response = client.chat.completions.create(
         model='deepseek-ai/DeepSeek-R1',
+        #model='Qwen/QVQ-72B-Preview',
+        #model='deepseek-ai/DeepSeek-R1-Distill-Llama-70B', 
+        #model='deepseek-ai/DeepSeek-R1-Distill-Qwen-32B', 
         messages=[
             {'role': 'user', 
             'content': content}
@@ -115,7 +118,7 @@ def update_memory(
     return memory
 
 
-def AutoLLM(MEM_LENGTH=4096, SLEEP_DURATION=15*30): 
+def AutoLLM(MEM_LENGTH=4096, SLEEP_DURATION=12*60): 
     print("[AutoLLM] Start.")
     print("[AutoLLM] Only use the last {} characters of memory.".format(MEM_LENGTH))
     print("[AutoLLM] Checking directories...")
@@ -208,6 +211,7 @@ def AutoLLM(MEM_LENGTH=4096, SLEEP_DURATION=15*30):
                 break
             print("[AutoLLM] Sleeping... {} / {} seconds".format(sleeping_time, SLEEP_DURATION), end="\r")
             time.sleep(1)
+
 
 if __name__ == "__main__":
     #print(get_llm_response(make_message(make_timestamp(), "Resbi", "你好~")))
